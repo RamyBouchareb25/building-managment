@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  MANAGER
+  ADMIN
+}
+
+enum ExpenseType {
+  MONTHLY
+  OCCASIONAL
+}
+
+enum ExpenseStatus {
+  PENDING
+  APPROVED
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      Role     @default(USER)
+  apartment String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  monthlyFees MonthlyFee[]
+  donations   Donation[]
+  expenses    Expense[]
+
+  @@map("users")
+}
+
+model MonthlyFee {
+  id          String   @id @default(cuid())
+  userId      String
+  amount      Float
+  month       Int      // 1-12
+  year        Int
+  isPaid      Boolean  @default(false)
+  paidAt      DateTime?
+  dueDate     DateTime
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month, year])
+  @@map("monthly_fees")
+}
+
+model Donation {
+  id          String   @id @default(cuid())
+  userId      String
+  amount      Float
+  description String?
+  isVisible   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("donations")
+}
+
+model Expense {
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  amount      Float
+  type        ExpenseType
+  status      ExpenseStatus @default(PENDING)
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdById String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@map("expenses")
+}
+
+model SystemHealth {
+  id               String   @id @default(cuid())
+  totalUsers       Int
+  totalRevenue     Float
+  totalExpenses    Float
+  pendingExpenses  Int
+  systemUptime     Float
+  lastBackup       DateTime?
+  createdAt        DateTime @default(now())
+
+  @@map("system_health")
+}
